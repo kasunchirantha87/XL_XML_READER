@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,8 +15,6 @@ namespace xl_xml_reader
         {
             // The code provided will print ‘Hello World’ to the console.
             // Press Ctrl+F5 (or go to Debug > Start Without Debugging) to run your app.
-            Console.WriteLine("Starting...");
-            Console.WriteLine("Please enter xml path?");
 
             var path = @"D:\xl_xml_reader\xl_xml_reader\xl_xml_reader\bin\Debug\Comments.xml";//Console.ReadLine();
             xmlProcessor(path);
@@ -46,30 +45,42 @@ namespace xl_xml_reader
             XmlReaderSettings settings = new XmlReaderSettings();
             settings.Async = true;
 
-            using (XmlReader reader = XmlReader.Create(stream, settings))
+            using (SqlConnection conn = new SqlConnection())
             {
-                while (await reader.ReadAsync())
+                conn.ConnectionString = "Server=DESKTOP-RRA8J2R\\SQLEXPRESS;Database=MSC;User Id=sa;Password=sql2012!;Trusted_Connection=true";
+                // using the code here...
+                conn.Open();
+                using (XmlReader reader = XmlReader.Create(stream, settings))
                 {
-                    switch (reader.NodeType)
+                    while (await reader.ReadAsync())
                     {
-                        case XmlNodeType.Element:
-                            //Console.WriteLine("Start Element {0}", reader.Name);
-                            if (reader.Name.ToLower() == "row") {
-                                //read attribute and insert to db
-                                //Console.WriteLine("Id", reader["Id"]);
-                                //Console.WriteLine("PostId", reader["PostId"]);
-                                //Console.WriteLine("Score", reader["Score"]);
-                                Console.WriteLine("Text", reader[3]);
-                                //Console.WriteLine("CreateDate", reader["CreateDate"]);
-                                //Console.WriteLine("UserDisplayName", reader["UserDisplayName"]);
-                                //Console.WriteLine("UserId", reader["UserId"]);
-                            }
-                            break;
-                       
-                        default:
-                            break;
+                        switch (reader.NodeType)
+                        {
+                            case XmlNodeType.Element:
+                                //Console.WriteLine("Start Element {0}", reader.Name);
+                                if (reader.Name.ToLower() == "row")
+                                {
+                                    int Id = Convert.ToInt32(reader["Id"]);
+                                    int PostId = Convert.ToInt32(reader["PostId"]);
+                                    int Score = Convert.ToInt32(reader["Score"]);
+                                    string Text = reader["Text"];
+                                    string CreationDate = reader["CreationDate"];
+                                    string UserDisplayName = reader["UserDisplayName"];
+                                    int UserId = Convert.ToInt32(reader["UserId"]);
+
+                                    SqlCommand insertCommand = new SqlCommand("INSERT INTO Comment (Id,PostId,Score,Text,CreationDate,UserDisplayName,UserId)" +
+                                        " VALUES (@Id,@PostId,@Score,@Text,@CreationDate,@UserDisplayName,@UserId)", conn);
+                                    //read attribute and insert to db
+                                    Console.WriteLine(Text);
+                                }
+                                break;
+
+                            default:
+                                break;
+                        }
                     }
                 }
+                conn.Close();
             }
         }
     }
